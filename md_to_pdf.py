@@ -6,6 +6,7 @@ Usage:
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -31,6 +32,33 @@ a { color: #0366d6; }
 """
 
 
+def fix_table_widths(html: str) -> str:
+    """Give every table's columns explicit equal widths.
+
+    xhtml2pdf sizes columns from the header cells, so an empty header cell
+    (common in comparison tables) collapses its column to zero width and the
+    cell text gets drawn overlapping the next column.
+    """
+
+    def fix_table(match: re.Match) -> str:
+        table = match.group(0)
+        header_row = re.search(r"<tr>.*?</tr>", table, flags=re.S)
+        if not header_row:
+            return table
+        header_cells = re.findall(r"<th[^>]*>", header_row.group(0))
+        if not header_cells:
+            return table
+        width = 100 / len(header_cells)
+        fixed_row = re.sub(
+            r"<th([^>]*)>",
+            rf'<th\1 style="width:{width:.2f}%">',
+            header_row.group(0),
+        )
+        return table.replace(header_row.group(0), fixed_row, 1)
+
+    return re.sub(r"<table>.*?</table>", fix_table, html, flags=re.S)
+
+
 def convert(input_path: Path, output_path: Path) -> None:
     """Read a Markdown file and write it out as a PDF."""
     md_text = input_path.read_text(encoding="utf-8")
@@ -39,6 +67,7 @@ def convert(input_path: Path, output_path: Path) -> None:
         md_text,
         extensions=["extra", "tables", "fenced_code", "sane_lists", "toc"],
     )
+    html_body = fix_table_widths(html_body)
     html = f"<html><head><style>{CSS}</style></head><body>{html_body}</body></html>"
 
     with open(output_path, "wb") as pdf_file:
