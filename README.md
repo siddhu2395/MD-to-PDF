@@ -51,6 +51,19 @@ Show help:
 python md_to_pdf.py --help
 ```
 
+### Page footer
+
+Every page gets a footer with **Confidential** on the bottom-left and
+**Sidwala Labs** on the bottom-right. You can customize or disable it:
+
+```bash
+# Custom footer text
+python md_to_pdf.py notes.md --footer-left "Internal Use Only" --footer-right "Acme Corp"
+
+# No footer at all
+python md_to_pdf.py notes.md --no-footer
+```
+
 ## Supported Markdown features
 
 - Headings, paragraphs, **bold** / _italic_ text

@@ -31,6 +31,33 @@ th { background-color: #eee; }
 a { color: #0366d6; }
 """
 
+# Page layout with a reserved footer frame at the bottom of every page.
+# The element whose id matches -pdf-frame-content is repeated on each page.
+PAGE_CSS = """
+@page {
+    margin: 2cm;
+    margin-bottom: 2.5cm;
+    @frame footer_frame {
+        -pdf-frame-content: footer_content;
+        bottom: 1cm;
+        margin-left: 2cm;
+        margin-right: 2cm;
+        height: 1cm;
+    }
+}
+.footer-table { border-collapse: collapse; width: 100%; margin: 0; }
+.footer-table td { border: none; padding: 0; font-size: 8.5pt; color: #888; }
+"""
+
+FOOTER_HTML = """
+<div id="footer_content">
+  <table class="footer-table"><tr>
+    <td align="left">{left}</td>
+    <td align="right">{right}</td>
+  </tr></table>
+</div>
+"""
+
 
 def fix_table_widths(html: str) -> str:
     """Give every table's columns explicit equal widths.
@@ -59,7 +86,13 @@ def fix_table_widths(html: str) -> str:
     return re.sub(r"<table>.*?</table>", fix_table, html, flags=re.S)
 
 
-def convert(input_path: Path, output_path: Path) -> None:
+def convert(
+    input_path: Path,
+    output_path: Path,
+    footer_left: str = "Confidential",
+    footer_right: str = "Sidwala Labs",
+    footer: bool = True,
+) -> None:
     """Read a Markdown file and write it out as a PDF."""
     md_text = input_path.read_text(encoding="utf-8")
 
@@ -68,7 +101,12 @@ def convert(input_path: Path, output_path: Path) -> None:
         extensions=["extra", "tables", "fenced_code", "sane_lists", "toc"],
     )
     html_body = fix_table_widths(html_body)
-    html = f"<html><head><style>{CSS}</style></head><body>{html_body}</body></html>"
+
+    css = CSS
+    if footer:
+        css += PAGE_CSS
+        html_body += FOOTER_HTML.format(left=footer_left, right=footer_right)
+    html = f"<html><head><style>{css}</style></head><body>{html_body}</body></html>"
 
     with open(output_path, "wb") as pdf_file:
         result = pisa.CreatePDF(html, dest=pdf_file, encoding="utf-8")
@@ -87,6 +125,21 @@ def main() -> None:
         nargs="?",
         help="Path for the PDF output (default: same name with .pdf extension)",
     )
+    parser.add_argument(
+        "--footer-left",
+        default="Confidential",
+        help='Text for the bottom-left of every page (default: "Confidential")',
+    )
+    parser.add_argument(
+        "--footer-right",
+        default="Sidwala Labs",
+        help='Text for the bottom-right of every page (default: "Sidwala Labs")',
+    )
+    parser.add_argument(
+        "--no-footer",
+        action="store_true",
+        help="Disable the page footer entirely",
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -96,7 +149,13 @@ def main() -> None:
     output_path = Path(args.output) if args.output else input_path.with_suffix(".pdf")
 
     try:
-        convert(input_path, output_path)
+        convert(
+            input_path,
+            output_path,
+            footer_left=args.footer_left,
+            footer_right=args.footer_right,
+            footer=not args.no_footer,
+        )
     except Exception as exc:
         sys.exit(f"Error: {exc}")
 
