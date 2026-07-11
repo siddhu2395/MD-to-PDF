@@ -25,7 +25,7 @@ pre { font-family: Courier, monospace; font-size: 9.5pt; background-color: #f5f5
       padding: 8px; border: 1px solid #ddd; }
 blockquote { color: #555; margin-left: 16px; padding-left: 8px;
              border-left: 3px solid #ccc; }
-table { border-collapse: collapse; width: 100%; }
+table { border-collapse: collapse; width: 100%; margin-top: 8px; margin-bottom: 14px; }
 th, td { border: 1px solid #999; padding: 4px 8px; }
 th { background-color: #eee; }
 a { color: #0366d6; }
